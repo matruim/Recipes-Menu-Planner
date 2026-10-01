@@ -1,0 +1,26 @@
+ktor:
+  application:
+    modules:
+      - com.family.mealplanner.ApplicationKt.module
+  deployment:
+    port: ${SERVER_PORT:8080}
+    host: ${SERVER_HOST:0.0.0.0}
+
+database:
+  url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/mealplanner}
+  user: ${DATABASE_USER:mealplanner}
+  password: ${DATABASE_PASSWORD:mealplanner}
+  maxPoolSize: ${DATABASE_MAX_POOL_SIZE:10}
+
+scraper:
+  # Recipe import refuses loopback and LAN addresses unless this is on.
+  allowPrivateHosts: ${SCRAPER_ALLOW_PRIVATE_HOSTS:false}
+
+images:
+  # Recipe pictures live here. Back this up alongside the database.
+  directory: ${IMAGE_DIR:data/images}
+
+app:
+  # Set when the planner is reached through a proxy or a host name, so the
+  # recipe-import bookmarklet points at the right address for everyone.
+  baseUrl: ${APP_BASE_URL:}
