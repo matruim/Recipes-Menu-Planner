@@ -235,8 +235,10 @@ bookmarklet pointing there.
 
 The catch is `localhost`. A bookmarklet made while sitting at the machine
 running the server points at `localhost`, which on your phone means the phone.
-So when the planner is opened over loopback, the form says so and offers this
-machine's network addresses to set it up from instead.
+So when the planner is opened over loopback, the form says so and offers the
+addresses other devices can use, host name first — a DHCP lease will eventually
+hand the machine a different IP, and a bookmarklet built on the old one breaks
+silently, whereas an mDNS name keeps working.
 
 Behind a reverse proxy or on a real host name, set `APP_BASE_URL` — it wins over
 whatever any one person's browser used:

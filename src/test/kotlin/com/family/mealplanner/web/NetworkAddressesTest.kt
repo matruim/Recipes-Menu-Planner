@@ -1,6 +1,7 @@
 package com.family.mealplanner.web
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -29,6 +30,24 @@ class NetworkAddressesTest {
     fun `survives something that is not an address`() {
         assertFalse(NetworkAddresses.isLoopback("not a url"))
         assertFalse(NetworkAddresses.isLoopback(""))
+    }
+
+    @Test
+    fun `a host name is offered before raw addresses`() {
+        // An IP changes with the DHCP lease; an mDNS name does not, and a
+        // bookmarklet built on the old address fails silently.
+        val origins = NetworkAddresses.reachableOrigins(8080)
+        val firstIpIndex = origins.indexOfFirst { Regex("""//\d""").containsMatchIn(it) }
+        val nameIndex = origins.indexOfFirst { !Regex("""//\d""").containsMatchIn(it) }
+        if (nameIndex >= 0 && firstIpIndex >= 0) {
+            assertTrue(nameIndex < firstIpIndex, "host name should come first: $origins")
+        }
+    }
+
+    @Test
+    fun `suggests nothing twice`() {
+        val origins = NetworkAddresses.reachableOrigins(8080)
+        assertEquals(origins.distinct(), origins)
     }
 
     @Test
