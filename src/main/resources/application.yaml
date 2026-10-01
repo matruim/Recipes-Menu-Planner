@@ -19,3 +19,8 @@ scraper:
 images:
   # Recipe pictures live here. Back this up alongside the database.
   directory: ${IMAGE_DIR:data/images}
+
+app:
+  # Set when the planner is reached through a proxy or a host name, so the
+  # recipe-import bookmarklet points at the right address for everyone.
+  baseUrl: ${APP_BASE_URL:}

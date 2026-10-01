@@ -23,6 +23,24 @@ fun FlowContent.pasteSourceFallback(
                     +"recipe page, click it — this planner opens in a new tab and you just press "
                     +"paste."
                 }
+                // The address is baked into the bookmarklet when it is dragged, so a
+                // localhost one works nowhere but this machine.
+                if (state.reachableOrigins.isNotEmpty()) {
+                    div("bookmarklet-warning") {
+                        p {
+                            +"You are viewing this at "
+                            strong { +appOrigin }
+                            +", so a bookmarklet made here will only work on this computer. "
+                            +"To use it from a phone or another machine, open the planner at "
+                            +"its network address first and drag the button from there:"
+                        }
+                        ul("origin-list") {
+                            state.reachableOrigins.forEach { origin ->
+                                li { a(href = "$origin/recipes/new") { +"$origin/recipes/new" } }
+                            }
+                        }
+                    }
+                }
                 a(href = bookmarkletHref(appOrigin), classes = "btn btn-primary bookmarklet") {
                     // Stops a click here from navigating; it is meant to be dragged.
                     onClick = "alert('Drag this button to your bookmarks bar, " +

@@ -2,6 +2,7 @@ package com.family.mealplanner
 
 import com.family.mealplanner.config.databaseConfig
 import com.family.mealplanner.config.imageConfig
+import com.family.mealplanner.config.publicBaseUrl
 import com.family.mealplanner.config.scraperConfig
 import com.family.mealplanner.db.DatabaseFactory
 import com.family.mealplanner.repository.PlannedMealRepository
@@ -72,7 +73,7 @@ fun Application.module() {
     routing {
         staticResources("/static", "static")
         calendarRoutes(plans, recipes)
-        recipeRoutes(recipes, plans, scraper, images)
+        recipeRoutes(recipes, plans, scraper, images, environment.config.publicBaseUrl())
         shoppingListRoutes(lists, plans)
     }
 }

@@ -48,6 +48,7 @@ fun Route.recipeRoutes(
     plans: PlannedMealRepository,
     scraper: RecipeScraper,
     images: ImageStore,
+    publicBaseUrl: String?,
 ) {
 
     get("/recipes") {
@@ -64,9 +65,11 @@ fun Route.recipeRoutes(
     }
 
     get("/recipes/new") {
+        val origin = call.appOrigin(publicBaseUrl)
         val newState = RecipeFormState(
-            appOrigin = call.appOrigin(),
+            appOrigin = origin,
             awaitingPaste = call.request.queryParameters["paste"] == "1",
+            reachableOrigins = call.reachableOrigins(origin),
         )
         call.respondHtml {
             appPage("New recipe", NavItem.RECIPES) { recipeFormPage(newState) }
@@ -84,7 +87,7 @@ fun Route.recipeRoutes(
         if (draft == null) {
             return@post call.respondHtml(HttpStatusCode.BadRequest) {
                 appPage("New recipe", NavItem.RECIPES) {
-                    recipeFormPage(form.toFormState(appOrigin = call.appOrigin()), error = "A title is required.")
+                    recipeFormPage(form.toFormState(appOrigin = call.appOrigin(publicBaseUrl)), error = "A title is required.")
                 }
             }
         }
@@ -105,7 +108,7 @@ fun Route.recipeRoutes(
 
     post("/recipes/import") {
         val form = call.receiveParameters()
-        val current = form.toFormState(appOrigin = call.appOrigin())
+        val current = form.toFormState(appOrigin = call.appOrigin(publicBaseUrl))
         call.respondFragment(
             when (val result = scraper.importFrom(current.sourceUrl)) {
                 is ImportResult.Imported -> recipeFormFragment(
@@ -131,7 +134,7 @@ fun Route.recipeRoutes(
         // A pasted page is whole HTML, far past the default single-field limit.
         call.formFieldLimit = MAX_PASTED_PAGE_BYTES
         val form = call.receiveParameters()
-        val current = form.toFormState(appOrigin = call.appOrigin())
+        val current = form.toFormState(appOrigin = call.appOrigin(publicBaseUrl))
         val pageSource = form["pageSource"].orEmpty()
 
         call.respondFragment(
@@ -205,7 +208,7 @@ fun Route.recipeRoutes(
         val detail = recipes.find(id) ?: return@get call.respond(HttpStatusCode.NotFound)
         call.respondHtml {
             appPage("Edit ${detail.recipe.title}", NavItem.RECIPES) {
-                recipeFormPage(RecipeFormState.of(detail, call.appOrigin()))
+                recipeFormPage(RecipeFormState.of(detail, call.appOrigin(publicBaseUrl)))
             }
         }
     }
@@ -218,7 +221,7 @@ fun Route.recipeRoutes(
         if (draft == null) {
             return@post call.respondHtml(HttpStatusCode.BadRequest) {
                 appPage("Edit recipe", NavItem.RECIPES) {
-                    recipeFormPage(form.toFormState(detail.recipe.id, call.appOrigin()), error = "A title is required.")
+                    recipeFormPage(form.toFormState(detail.recipe.id, call.appOrigin(publicBaseUrl)), error = "A title is required.")
                 }
             }
         }
@@ -307,14 +310,26 @@ private fun importedNotice(recipe: ImportedRecipe): String {
 /** Recipe pages routinely run past a megabyte of markup. */
 private const val MAX_PASTED_PAGE_BYTES = 8L * 1024 * 1024
 
-/** This server as the browser reached it, so the bookmarklet posts to the right host. */
-private fun ApplicationCall.appOrigin(): String {
+/**
+ * Where the bookmarklet should point. A configured base URL wins, since only it
+ * knows about proxies and host names; otherwise it is however the browser got here.
+ */
+private fun ApplicationCall.appOrigin(publicBaseUrl: String? = null): String {
+    publicBaseUrl?.let { return it }
     val point = request.origin
     val isDefaultPort = (point.scheme == "http" && point.serverPort == 80) ||
         (point.scheme == "https" && point.serverPort == 443)
     val port = if (isDefaultPort) "" else ":${point.serverPort}"
     return "${point.scheme}://${point.serverHost}$port"
 }
+
+/** Only worth offering when the planner was opened on the machine running it. */
+private fun ApplicationCall.reachableOrigins(origin: String): List<String> =
+    if (NetworkAddresses.isLoopback(origin)) {
+        NetworkAddresses.reachableOrigins(request.local.localPort)
+    } else {
+        emptyList()
+    }
 
 /** Uploads are capped well below the store's own limit to fail fast. */
 private const val MAX_IMAGE_BYTES = 8L * 1024 * 1024

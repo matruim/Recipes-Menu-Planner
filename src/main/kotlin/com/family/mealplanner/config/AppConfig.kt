@@ -9,6 +9,14 @@ data class DatabaseConfig(
     val maxPoolSize: Int,
 )
 
+/**
+ * The address this planner is reachable at, when it is not simply the one the
+ * browser used — behind a reverse proxy, or on a real host name. Set it and the
+ * bookmarklet points there regardless of how any one person reached the app.
+ */
+fun ApplicationConfig.publicBaseUrl(): String? =
+    propertyOrNull("app.baseUrl")?.getString()?.trim()?.trimEnd('/')?.takeIf { it.isNotBlank() }
+
 data class ScraperConfig(
     /** Off by default: the app has no login, so it will not fetch LAN addresses. */
     val allowPrivateHosts: Boolean,

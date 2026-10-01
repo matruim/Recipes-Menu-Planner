@@ -152,6 +152,7 @@ Nothing needs setting to run locally. To change anything, copy `.env.example` to
 | `IMAGE_DIR`                   | `data/images`                                  | Where recipe photos are kept |
 | `SCRAPER_ALLOW_PRIVATE_HOSTS` | `false`                                        | See [fetching links](#a-note-on-fetching-links) |
 | `POSTGRES_PORT`               | `5433`                                         | Host port for the Docker database |
+| `APP_BASE_URL`                | *(unset)*                                      | See [the bookmarklet's address](#the-bookmarklets-address) |
 
 ### Running it on your home network
 
@@ -224,6 +225,25 @@ allowed.
 Failing that, the same box takes a manual paste: open the recipe, press
 Ctrl/Cmd+U to view its source, select all, paste. It opens by itself whenever an
 import is refused.
+
+### The bookmarklet's address
+
+The bookmarklet has to know where this planner lives, and it keeps whatever
+address it was made with. That address is worked out from however you reached
+the app, so dragging the button from `http://nas.local:8080` gives you a
+bookmarklet pointing there.
+
+The catch is `localhost`. A bookmarklet made while sitting at the machine
+running the server points at `localhost`, which on your phone means the phone.
+So when the planner is opened over loopback, the form says so and offers this
+machine's network addresses to set it up from instead.
+
+Behind a reverse proxy or on a real host name, set `APP_BASE_URL` — it wins over
+whatever any one person's browser used:
+
+```bash
+APP_BASE_URL=https://meals.example.com
+```
 
 ### Pictures
 

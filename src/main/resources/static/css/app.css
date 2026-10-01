@@ -659,3 +659,12 @@ a.bookmarklet:hover { text-decoration: none; }
 
   a { color: #000; text-decoration: none; }
 }
+
+.bookmarklet-warning {
+  border-left: 3px solid var(--accent);
+  padding: .1rem 0 .1rem .7rem;
+  margin: .6rem 0;
+}
+.bookmarklet-warning p { font-size: .82rem; color: var(--text-dim); }
+.origin-list { margin: .3rem 0 0; padding-left: 1.1rem; font-size: .85rem; }
+.origin-list li { padding: .1rem 0; }

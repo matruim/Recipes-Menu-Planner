@@ -27,6 +27,8 @@ data class RecipeFormState(
     val appOrigin: String = "",
     /** Arrived from the bookmarklet, with the page already on the clipboard. */
     val awaitingPaste: Boolean = false,
+    /** Offered when this server was reached over loopback; empty otherwise. */
+    val reachableOrigins: List<String> = emptyList(),
 ) {
     val isEdit: Boolean get() = id != null
 
