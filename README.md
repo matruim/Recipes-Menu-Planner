@@ -83,6 +83,22 @@ salt, to taste
 The form shows how it understood each line as you type, so you can see straight
 away if something was read wrong.
 
+### Recipes on paper
+
+There is nothing to import from a cookbook or a recipe card, but you do not have
+to retype the ingredients either. On a Mac, photograph the page, open it in
+Preview or Photos, select the ingredient list directly off the image with Live
+Text, and paste it in. Printed text comes back near-perfectly, including
+fractions.
+
+The parser expects text that has been through a scanner. A mixed fraction loses
+its space when read off a page — `1 1/2` comes back as `11/2`, which taken
+literally is five and a half — so a numerator that is both multi-digit and no
+smaller than its denominator is split back apart. Cooking fractions are always
+proper, so nothing a person types looks like that. Units mangled the same way
+are understood too: `Ibs` and `1bs` are read as pounds, `0z` as ounces, since
+`l`, `I`, `1` and `O`, `0` are interchangeable to a scanner.
+
 > **If a site refuses to be imported** (some answer 403 to anything that is not a
 > browser), use the **bookmarklet** offered on that same form. Drag it to your
 > bookmarks bar once; from then on, click it on any recipe page and the planner

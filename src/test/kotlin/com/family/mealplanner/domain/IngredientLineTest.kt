@@ -32,6 +32,44 @@ class IngredientLineTest {
     }
 
     @Test
+    fun `recovers a mixed fraction that lost its space`() {
+        // Text read off a printed page drops the gap in "1 1/2". Read literally
+        // that is five and a half, which is a silent and dangerous wrong answer.
+        assertEquals(1.5, parse("11/2 tsp kosher salt").quantity.amount)
+        assertEquals(1.25, parse("11/4 cups dry red wine").quantity.amount)
+        assertEquals(1.75, parse("13/4 cups stock").quantity.amount)
+        assertEquals(2.5, parse("21/2 lbs beef").quantity.amount)
+        assertEquals(2.75, parse("23/4 cups flour").quantity.amount)
+    }
+
+    @Test
+    fun `reads units the way a scanner mangles them`() {
+        // l, I and 1 are interchangeable to an OCR engine, and 0 for O.
+        assertEquals(MeasurementUnit.POUND, parse("3 Ibs bone-in short ribs").quantity.unit)
+        assertEquals(MeasurementUnit.POUND, parse("2 1bs chicken thighs").quantity.unit)
+        assertEquals(MeasurementUnit.OUNCE, parse("8 0z cream cheese").quantity.unit)
+        assertEquals("bone-in short ribs", parse("3 Ibs bone-in short ribs").name)
+    }
+
+    @Test
+    fun `leaves genuine fractions alone`() {
+        assertEquals(0.5, parse("1/2 tsp pepper").quantity.amount)
+        assertEquals(0.75, parse("3/4 cup sugar").quantity.amount)
+        assertEquals(0.125, parse("1/8 teaspoon salt").quantity.amount)
+        // A single-digit numerator is taken as written, even when improper.
+        assertEquals(2.5, parse("5/2 cups water").quantity.amount)
+        assertEquals(7.5, parse("15/2 cups water").quantity.amount)
+    }
+
+    @Test
+    fun `reads a unit that lost its space too`() {
+        val result = parse("2tbsp tomato paste")
+        assertEquals(2.0, result.quantity.amount)
+        assertEquals(MeasurementUnit.TABLESPOON, result.quantity.unit)
+        assertEquals("tomato paste", result.name)
+    }
+
+    @Test
     fun `parses unicode fractions, including when glued to a whole number`() {
         assertEquals(0.5, parse("½ cup milk").quantity.amount)
         assertEquals(1.5, parse("1½ cups milk").quantity.amount)

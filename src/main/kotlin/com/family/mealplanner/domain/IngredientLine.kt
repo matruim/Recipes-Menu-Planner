@@ -89,11 +89,30 @@ private fun takeLeadingUnit(text: String): Pair<String, MeasurementUnit?> {
     return text to null
 }
 
+/**
+ * Reads a bare fraction, recovering a mixed one that lost its space.
+ *
+ * Text lifted off a printed page reliably drops the gap in "1 1/2", leaving
+ * "11/2". Taken literally that is five and a half - a silent wrong answer, and a
+ * dangerous one for salt. Cooking fractions are always proper, so a numerator
+ * that is both multi-digit and no smaller than its denominator did not come from
+ * a person, and its leading digits are the whole number.
+ */
+private fun fractionOrSquashedMixed(numerator: String, denominator: String): Double? {
+    val n = numerator.toDoubleOrNull() ?: return null
+    val d = denominator.toDoubleOrNull()?.takeIf { it != 0.0 } ?: return null
+    if (numerator.length < 2 || n < d) return n / d
+
+    val fraction = numerator.last().digitToIntOrNull() ?: return n / d
+    val whole = numerator.dropLast(1).toDoubleOrNull() ?: return n / d
+    return if (fraction < d) whole + fraction / d else n / d
+}
+
 private fun MatchResult.toAmount(): Double? {
     val g = groupValues
     return when {
         g[1].isNotEmpty() -> g[1].toDouble() + g[2].toDouble() / g[3].toDouble()
-        g[4].isNotEmpty() -> g[4].toDouble() / g[5].toDouble()
+        g[4].isNotEmpty() -> fractionOrSquashedMixed(g[4], g[5])
         g[6].isNotEmpty() -> g[6].toDouble()
         else -> null
     }?.takeIf { it.isFinite() }
