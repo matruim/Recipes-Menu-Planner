@@ -307,6 +307,8 @@ private fun FlowContent.recipeFormBody(
         )
     }
 
+    scanPageField(state.canScanPages)
+
     div("field") {
         label { +"Title" }
         input(type = InputType.text, name = "title") {

@@ -85,13 +85,25 @@ away if something was read wrong.
 
 ### Recipes on paper
 
-There is nothing to import from a cookbook or a recipe card, but you do not have
-to retype the ingredients either. On a Mac, photograph the page, open it in
-Preview or Photos, select the ingredient list directly off the image with Live
-Text, and paste it in. Printed text comes back near-perfectly, including
-fractions.
+Photograph the page — or save it as a PDF — and use **Scan a page** on the recipe
+form. The text is read off it and the form fills itself in: title, servings,
+times, ingredients and method. Check it over before saving; a scan is rarely
+perfect, and the live preview below the ingredients box shows exactly how each
+line was understood.
 
-The parser expects text that has been through a scanner. A mixed fraction loses
+This uses macOS's own text recognition, the engine behind Live Text, rather than
+a bundled OCR library. On a photographed page the difference is stark: the system
+engine shrugs off rotation, soft focus and uneven lighting, where tesseract loses
+whole words and merges columns. The cost is that it only works on macOS — the
+control simply is not offered elsewhere, rather than quietly producing worse
+results, and pasting or typing still work everywhere.
+
+The helper is shipped as Swift source and compiled on first use, so there is no
+platform-specific binary in the repository. The first scan takes about a second
+and a half; every one after is about half a second.
+
+The parser expects text that has been through a scanner, whether it arrived by
+scanning or by pasting. A mixed fraction loses
 its space when read off a page — `1 1/2` comes back as `11/2`, which taken
 literally is five and a half — so a numerator that is both multi-digit and no
 smaller than its denominator is split back apart. Cooking fractions are always

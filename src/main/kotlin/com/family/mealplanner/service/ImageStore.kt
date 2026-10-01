@@ -40,27 +40,10 @@ class ImageStore(private val directory: Path, private val maxBytes: Int = 6 * 10
         return path.takeIf { Files.isRegularFile(it) }
     }
 
-    fun contentTypeOf(name: String): String = when (name.substringAfterLast('.', "")) {
-        "png" -> "image/png"
-        "gif" -> "image/gif"
-        "webp" -> "image/webp"
-        else -> "image/jpeg"
-    }
+    fun contentTypeOf(name: String): String = FileType.mediaTypeFor(name)
 
-    private fun detectExtension(bytes: ByteArray): String? = when {
-        bytes.startsWith(0xFF, 0xD8, 0xFF) -> "jpg"
-        bytes.startsWith(0x89, 0x50, 0x4E, 0x47) -> "png"
-        bytes.startsWith(0x47, 0x49, 0x46, 0x38) -> "gif"
-        // RIFF....WEBP
-        bytes.size > 12 && bytes.startsWith(0x52, 0x49, 0x46, 0x46) &&
-            bytes.copyOfRange(8, 12).toString(Charsets.ISO_8859_1) == "WEBP" -> "webp"
-        else -> null
-    }
-
-    private fun ByteArray.startsWith(vararg signature: Int): Boolean {
-        if (size < signature.size) return false
-        return signature.withIndex().all { (index, value) -> this[index] == value.toByte() }
-    }
+    private fun detectExtension(bytes: ByteArray): String? =
+        FileType.of(bytes)?.takeIf { it.isImage }?.extension
 
     private companion object {
         val STORED_NAME = Regex("""[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|gif|webp)""")

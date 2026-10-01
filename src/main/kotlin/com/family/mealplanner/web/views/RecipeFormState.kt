@@ -29,6 +29,8 @@ data class RecipeFormState(
     val awaitingPaste: Boolean = false,
     /** Offered when this server was reached over loopback; empty otherwise. */
     val reachableOrigins: List<String> = emptyList(),
+    /** Whether this machine can read text off an uploaded page. */
+    val canScanPages: Boolean = false,
 ) {
     val isEdit: Boolean get() = id != null
 
