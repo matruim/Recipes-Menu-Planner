@@ -30,6 +30,8 @@ dependencies {
     implementation(libs.kotlinx.html)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.jsoup)
+    // jsoup's nullability annotations, so Kotlin can read its types
+    compileOnly(libs.jspecify)
 
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)

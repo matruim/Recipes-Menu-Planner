@@ -196,10 +196,22 @@ an `@graph`, a `@type` given as an array, instructions arriving as one HTML blob
 or as grouped `HowToSection` steps, and yields written as `"6 servings"`, `6` or
 `["12 cookies", "12"]`.
 
+Sites that annotate their HTML with microdata instead of publishing JSON are
+read too.
+
 A few fields — usually servings, times and the photo — get shown on the page but
 left out of the structured data. Those are read from the page text and from the
 `og:image` / `twitter:image` tags, and only for fields the structured data left
 empty.
+
+Some sites publish only *part* of a recipe. recipes.heart.org lists a soup's six
+salsa ingredients and leaves the ten soup ingredients out of its markup
+altogether, which loses half the recipe without saying so. So the page's own
+lists are read as well: a list whose items mostly begin with a quantity is an
+ingredient list, judged with the same parser the form uses. The page is only
+trusted over the markup when it offers strictly more *and* still accounts for
+everything the markup named, so a list rendered twice for printing, or an
+unrelated list that happens to look measured, cannot quietly replace good data.
 
 A page that turns out to be a roundup ("10 Zucchini Boat Recipes") is recognised
 as a list rather than a recipe, and says so instead of failing blankly.

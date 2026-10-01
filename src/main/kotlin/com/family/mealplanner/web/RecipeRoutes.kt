@@ -6,7 +6,7 @@ import com.family.mealplanner.repository.PlannedMealRepository
 import com.family.mealplanner.repository.RecipeRepository
 import com.family.mealplanner.service.ImportResult
 import com.family.mealplanner.service.ImportedRecipe
-import com.family.mealplanner.service.JsonLdRecipeParser
+import com.family.mealplanner.service.RecipePageParser
 import com.family.mealplanner.service.ImageStore
 import com.family.mealplanner.service.RecipeScraper
 import com.family.mealplanner.web.views.NavItem
@@ -142,7 +142,7 @@ fun Route.recipeRoutes(
                 recipeFormFragment(current, error = "Paste the page source first.")
             } else {
                 // Same parser as a fetched page; the browser just did the fetching.
-                when (val result = JsonLdRecipeParser.parse(pageSource, current.sourceUrl)) {
+                when (val result = RecipePageParser.parse(pageSource, current.sourceUrl)) {
                     is ImportResult.Imported -> recipeFormFragment(
                         current.mergedWith(result.recipe, scraper.storeImage(result.recipe.imageUrl)),
                         notice = importedNotice(result.recipe),

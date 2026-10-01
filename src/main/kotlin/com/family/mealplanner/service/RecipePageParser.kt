@@ -17,7 +17,7 @@ import java.time.Duration
  * markup in the wild is still untidy — a field can arrive as a string, a number,
  * an array, or an object — so everything here reads defensively.
  */
-object JsonLdRecipeParser {
+object RecipePageParser {
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -26,6 +26,12 @@ object JsonLdRecipeParser {
         val recipeNode = jsonLdBlocks(document).firstNotNullOfOrNull { findRecipeNode(it) }
 
         if (recipeNode == null) {
+            // Some sites annotate their HTML rather than publishing JSON.
+            MicrodataRecipeParser.parse(document, sourceUrl)?.let { fromMicrodata ->
+                return ImportResult.Imported(
+                    HtmlFieldFallback.fill(fromMicrodata, document).withIngredientsFrom(document),
+                )
+            }
             // A roundup lists recipes without being one, which is worth saying plainly.
             val listed = collectionItemNames(document)
             if (listed.size >= 2) {
@@ -60,6 +66,7 @@ object JsonLdRecipeParser {
 
         // Some sites print servings and times on the page but omit them from JSON-LD.
         val completed = HtmlFieldFallback.fill(recipe, document)
+            .withIngredientsFrom(document)
 
         return if (completed.isUsable) {
             ImportResult.Imported(completed)
@@ -215,3 +222,10 @@ object JsonLdRecipeParser {
     private val WHITESPACE = Regex("""\s+""")
     private const val NON_BREAKING_SPACE = ' '
 }
+
+/**
+ * Takes the page's own ingredient lists where the markup gave fewer, which is
+ * how a recipe published only in part is recovered in full.
+ */
+private fun ImportedRecipe.withIngredientsFrom(document: Document): ImportedRecipe =
+    copy(ingredients = HtmlIngredientFinder.merge(ingredients, document))
