@@ -6,7 +6,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class JsonLdRecipeParserTest {
+class RecipePageParserTest {
 
     private fun page(jsonLd: String, head: String = "") = """
         <html><head><title>Fallback Title</title>$head
@@ -15,7 +15,7 @@ class JsonLdRecipeParserTest {
     """.trimIndent()
 
     private fun imported(jsonLd: String, head: String = ""): ImportedRecipe {
-        val result = JsonLdRecipeParser.parse(page(jsonLd, head), "https://example.com/r")
+        val result = RecipePageParser.parse(page(jsonLd, head), "https://example.com/r")
         assertIs<ImportResult.Imported>(result, "expected a usable recipe, got $result")
         return result.recipe
     }
@@ -227,7 +227,7 @@ class JsonLdRecipeParserTest {
               {"@type":"Recipe","name":"Survivor","recipeIngredient":["1 tsp salt"]}
             </script></head><body></body></html>
         """.trimIndent()
-        val result = JsonLdRecipeParser.parse(html, "https://example.com/r")
+        val result = RecipePageParser.parse(html, "https://example.com/r")
         assertIs<ImportResult.Imported>(result)
         assertEquals("Survivor", result.recipe.title)
     }
@@ -245,7 +245,7 @@ class JsonLdRecipeParserTest {
                {"@type":"ListItem","position":3,"name":"Zucchini Pizza Boats"}]}]
             """,
         )
-        val result = JsonLdRecipeParser.parse(html, "https://example.com/roundup")
+        val result = RecipePageParser.parse(html, "https://example.com/roundup")
         assertIs<ImportResult.Roundup>(result)
         assertEquals(3, result.itemNames.size)
         assertEquals("Vegetarian Zucchini Boats", result.itemNames.first())
@@ -261,7 +261,7 @@ class JsonLdRecipeParserTest {
               {"@type":"ListItem","item":{"@type":"Thing","name":"Second Dish"}}]}
             """,
         )
-        val result = JsonLdRecipeParser.parse(html, "https://example.com/roundup")
+        val result = RecipePageParser.parse(html, "https://example.com/roundup")
         assertIs<ImportResult.Roundup>(result)
         assertEquals(listOf("First Dish", "Second Dish"), result.itemNames)
     }
@@ -286,7 +286,7 @@ class JsonLdRecipeParserTest {
             <meta property="og:title" content="Just A Blog Post"></head>
             <body><p>No markup here.</p></body></html>
         """.trimIndent()
-        val result = JsonLdRecipeParser.parse(html, "https://example.com/r")
+        val result = RecipePageParser.parse(html, "https://example.com/r")
         assertIs<ImportResult.NothingFound>(result)
         assertEquals("Just A Blog Post", result.partial?.title)
         assertTrue(result.message.isNotBlank())
@@ -295,7 +295,7 @@ class JsonLdRecipeParserTest {
     @Test
     fun `reports recipe markup that carries no ingredients`() {
         val html = page("""{"@type":"Recipe","name":"Ingredient-less"}""")
-        val result = JsonLdRecipeParser.parse(html, "https://example.com/r")
+        val result = RecipePageParser.parse(html, "https://example.com/r")
         assertIs<ImportResult.NothingFound>(result)
         assertEquals("Ingredient-less", result.partial?.title)
     }

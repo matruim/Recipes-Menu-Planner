@@ -83,6 +83,34 @@ salt, to taste
 The form shows how it understood each line as you type, so you can see straight
 away if something was read wrong.
 
+### Recipes on paper
+
+Photograph the page — or save it as a PDF — and use **Scan a page** on the recipe
+form. The text is read off it and the form fills itself in: title, servings,
+times, ingredients and method. Check it over before saving; a scan is rarely
+perfect, and the live preview below the ingredients box shows exactly how each
+line was understood.
+
+This uses macOS's own text recognition, the engine behind Live Text, rather than
+a bundled OCR library. On a photographed page the difference is stark: the system
+engine shrugs off rotation, soft focus and uneven lighting, where tesseract loses
+whole words and merges columns. The cost is that it only works on macOS — the
+control simply is not offered elsewhere, rather than quietly producing worse
+results, and pasting or typing still work everywhere.
+
+The helper is shipped as Swift source and compiled on first use, so there is no
+platform-specific binary in the repository. The first scan takes about a second
+and a half; every one after is about half a second.
+
+The parser expects text that has been through a scanner, whether it arrived by
+scanning or by pasting. A mixed fraction loses
+its space when read off a page — `1 1/2` comes back as `11/2`, which taken
+literally is five and a half — so a numerator that is both multi-digit and no
+smaller than its denominator is split back apart. Cooking fractions are always
+proper, so nothing a person types looks like that. Units mangled the same way
+are understood too: `Ibs` and `1bs` are read as pounds, `0z` as ounces, since
+`l`, `I`, `1` and `O`, `0` are interchangeable to a scanner.
+
 > **If a site refuses to be imported** (some answer 403 to anything that is not a
 > browser), use the **bookmarklet** offered on that same form. Drag it to your
 > bookmarks bar once; from then on, click it on any recipe page and the planner
@@ -196,10 +224,22 @@ an `@graph`, a `@type` given as an array, instructions arriving as one HTML blob
 or as grouped `HowToSection` steps, and yields written as `"6 servings"`, `6` or
 `["12 cookies", "12"]`.
 
+Sites that annotate their HTML with microdata instead of publishing JSON are
+read too.
+
 A few fields — usually servings, times and the photo — get shown on the page but
 left out of the structured data. Those are read from the page text and from the
 `og:image` / `twitter:image` tags, and only for fields the structured data left
 empty.
+
+Some sites publish only *part* of a recipe. recipes.heart.org lists a soup's six
+salsa ingredients and leaves the ten soup ingredients out of its markup
+altogether, which loses half the recipe without saying so. So the page's own
+lists are read as well: a list whose items mostly begin with a quantity is an
+ingredient list, judged with the same parser the form uses. The page is only
+trusted over the markup when it offers strictly more *and* still accounts for
+everything the markup named, so a list rendered twice for printing, or an
+unrelated list that happens to look measured, cannot quietly replace good data.
 
 A page that turns out to be a roundup ("10 Zucchini Boat Recipes") is recognised
 as a list rather than a recipe, and says so instead of failing blankly.
@@ -235,8 +275,10 @@ bookmarklet pointing there.
 
 The catch is `localhost`. A bookmarklet made while sitting at the machine
 running the server points at `localhost`, which on your phone means the phone.
-So when the planner is opened over loopback, the form says so and offers this
-machine's network addresses to set it up from instead.
+So when the planner is opened over loopback, the form says so and offers the
+addresses other devices can use, host name first — a DHCP lease will eventually
+hand the machine a different IP, and a bookmarklet built on the old one breaks
+silently, whereas an mDNS name keeps working.
 
 Behind a reverse proxy or on a real host name, set `APP_BASE_URL` — it wins over
 whatever any one person's browser used:

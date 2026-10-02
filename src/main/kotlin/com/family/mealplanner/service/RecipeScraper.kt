@@ -19,7 +19,7 @@ class RecipeScraper(
         } catch (e: UnreachableSourceException) {
             return ImportResult.Failed(e.message ?: "Could not fetch that page.")
         }
-        return JsonLdRecipeParser.parse(html, trimmed)
+        return RecipePageParser.parse(html, trimmed)
     }
 
     /**

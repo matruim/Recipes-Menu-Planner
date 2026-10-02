@@ -36,8 +36,10 @@ enum class MeasurementUnit(
     MILLILITER("ml", "ml", UnitFamily.VOLUME, UnitSystem.METRIC, 1.0, "milliliter", "milliliters", "millilitre", "millilitres"),
     LITER("l", "l", UnitFamily.VOLUME, UnitSystem.METRIC, 1000.0, "liter", "liters", "litre", "litres"),
 
-    OUNCE("oz", "oz", UnitFamily.WEIGHT, UnitSystem.US, 28.3495, "ounce", "ounces"),
-    POUND("lb", "lbs", UnitFamily.WEIGHT, UnitSystem.US, 453.592, "lbs", "pound", "pounds"),
+    OUNCE("oz", "oz", UnitFamily.WEIGHT, UnitSystem.US, 28.3495, "ounce", "ounces", "0z"),
+    // "ibs" and "1bs" are not typos a person makes; they are how "lbs" comes back
+    // from text read off a printed page, where l, I and 1 are easily confused.
+    POUND("lb", "lbs", UnitFamily.WEIGHT, UnitSystem.US, 453.592, "lbs", "pound", "pounds", "ibs", "1bs"),
 
     GRAM("g", "g", UnitFamily.WEIGHT, UnitSystem.METRIC, 1.0, "gram", "grams"),
     KILOGRAM("kg", "kg", UnitFamily.WEIGHT, UnitSystem.METRIC, 1000.0, "kilogram", "kilograms"),

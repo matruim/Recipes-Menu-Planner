@@ -6,8 +6,11 @@ import com.family.mealplanner.repository.PlannedMealRepository
 import com.family.mealplanner.repository.RecipeRepository
 import com.family.mealplanner.service.ImportResult
 import com.family.mealplanner.service.ImportedRecipe
-import com.family.mealplanner.service.JsonLdRecipeParser
+import com.family.mealplanner.service.RecipePageParser
 import com.family.mealplanner.service.ImageStore
+import com.family.mealplanner.service.PageScanner
+import com.family.mealplanner.service.ScanUnavailableException
+import com.family.mealplanner.service.TextRecipeParser
 import com.family.mealplanner.service.RecipeScraper
 import com.family.mealplanner.web.views.NavItem
 import com.family.mealplanner.web.views.appPage
@@ -48,6 +51,7 @@ fun Route.recipeRoutes(
     plans: PlannedMealRepository,
     scraper: RecipeScraper,
     images: ImageStore,
+    scanner: PageScanner,
     publicBaseUrl: String?,
 ) {
 
@@ -70,6 +74,7 @@ fun Route.recipeRoutes(
             appOrigin = origin,
             awaitingPaste = call.request.queryParameters["paste"] == "1",
             reachableOrigins = call.reachableOrigins(origin),
+            canScanPages = scanner.isAvailable,
         )
         call.respondHtml {
             appPage("New recipe", NavItem.RECIPES) { recipeFormPage(newState) }
@@ -87,7 +92,7 @@ fun Route.recipeRoutes(
         if (draft == null) {
             return@post call.respondHtml(HttpStatusCode.BadRequest) {
                 appPage("New recipe", NavItem.RECIPES) {
-                    recipeFormPage(form.toFormState(appOrigin = call.appOrigin(publicBaseUrl)), error = "A title is required.")
+                    recipeFormPage(form.toFormState(appOrigin = call.appOrigin(publicBaseUrl), canScanPages = scanner.isAvailable), error = "A title is required.")
                 }
             }
         }
@@ -108,7 +113,7 @@ fun Route.recipeRoutes(
 
     post("/recipes/import") {
         val form = call.receiveParameters()
-        val current = form.toFormState(appOrigin = call.appOrigin(publicBaseUrl))
+        val current = form.toFormState(appOrigin = call.appOrigin(publicBaseUrl), canScanPages = scanner.isAvailable)
         call.respondFragment(
             when (val result = scraper.importFrom(current.sourceUrl)) {
                 is ImportResult.Imported -> recipeFormFragment(
@@ -134,7 +139,7 @@ fun Route.recipeRoutes(
         // A pasted page is whole HTML, far past the default single-field limit.
         call.formFieldLimit = MAX_PASTED_PAGE_BYTES
         val form = call.receiveParameters()
-        val current = form.toFormState(appOrigin = call.appOrigin(publicBaseUrl))
+        val current = form.toFormState(appOrigin = call.appOrigin(publicBaseUrl), canScanPages = scanner.isAvailable)
         val pageSource = form["pageSource"].orEmpty()
 
         call.respondFragment(
@@ -142,7 +147,7 @@ fun Route.recipeRoutes(
                 recipeFormFragment(current, error = "Paste the page source first.")
             } else {
                 // Same parser as a fetched page; the browser just did the fetching.
-                when (val result = JsonLdRecipeParser.parse(pageSource, current.sourceUrl)) {
+                when (val result = RecipePageParser.parse(pageSource, current.sourceUrl)) {
                     is ImportResult.Imported -> recipeFormFragment(
                         current.mergedWith(result.recipe, scraper.storeImage(result.recipe.imageUrl)),
                         notice = importedNotice(result.recipe),
@@ -158,6 +163,36 @@ fun Route.recipeRoutes(
                     )
                     is ImportResult.Failed -> recipeFormFragment(current, error = result.message)
                 }
+            },
+        )
+    }
+
+    post("/recipes/scan") {
+        call.formFieldLimit = MAX_SCAN_BYTES
+        val upload = call.receiveMultipart(formFieldLimit = MAX_SCAN_BYTES)
+        var page: ByteArray? = null
+        var fields = Parameters.Empty
+        upload.forEachPart { part ->
+            when {
+                part is PartData.FileItem && page == null -> page = part.provider().toByteArray()
+                part is PartData.FormItem ->
+                    fields = Parameters.build { appendAll(fields); append(part.name.orEmpty(), part.value) }
+                else -> Unit
+            }
+            part.dispose()
+        }
+
+        val current = fields.toFormState(
+            appOrigin = call.appOrigin(publicBaseUrl),
+            canScanPages = scanner.isAvailable,
+        )
+        val bytes = page
+
+        call.respondFragment(
+            when {
+                bytes == null || bytes.isEmpty() ->
+                    recipeFormFragment(current, error = "Choose a photo or PDF first.")
+                else -> scanInto(current, bytes, scanner)
             },
         )
     }
@@ -208,7 +243,8 @@ fun Route.recipeRoutes(
         val detail = recipes.find(id) ?: return@get call.respond(HttpStatusCode.NotFound)
         call.respondHtml {
             appPage("Edit ${detail.recipe.title}", NavItem.RECIPES) {
-                recipeFormPage(RecipeFormState.of(detail, call.appOrigin(publicBaseUrl)))
+                recipeFormPage(RecipeFormState.of(detail, call.appOrigin(publicBaseUrl))
+                    .copy(canScanPages = scanner.isAvailable))
             }
         }
     }
@@ -221,7 +257,7 @@ fun Route.recipeRoutes(
         if (draft == null) {
             return@post call.respondHtml(HttpStatusCode.BadRequest) {
                 appPage("Edit recipe", NavItem.RECIPES) {
-                    recipeFormPage(form.toFormState(detail.recipe.id, call.appOrigin(publicBaseUrl)), error = "A title is required.")
+                    recipeFormPage(form.toFormState(detail.recipe.id, call.appOrigin(publicBaseUrl), canScanPages = scanner.isAvailable), error = "A title is required.")
                 }
             }
         }
@@ -281,10 +317,12 @@ private fun Parameters.toFormState(
     id: java.util.UUID? = null,
     appOrigin: String = "",
     awaitingPaste: Boolean = false,
+    canScanPages: Boolean = false,
 ) = RecipeFormState(
     id = id,
     appOrigin = appOrigin,
     awaitingPaste = awaitingPaste,
+    canScanPages = canScanPages,
     title = this["title"].orEmpty(),
     description = this["description"].orEmpty(),
     instructions = this["instructions"].orEmpty(),
@@ -333,3 +371,28 @@ private fun ApplicationCall.reachableOrigins(origin: String): List<String> =
 
 /** Uploads are capped well below the store's own limit to fail fast. */
 private const val MAX_IMAGE_BYTES = 8L * 1024 * 1024
+
+/** Reads an uploaded page and lays what it found over whatever is already typed. */
+private fun scanInto(current: RecipeFormState, page: ByteArray, scanner: PageScanner): String {
+    val text = try {
+        scanner.readText(page)
+    } catch (e: ScanUnavailableException) {
+        return recipeFormFragment(current, error = e.message)
+    }
+
+    val recipe = TextRecipeParser.parse(text)
+        ?: return recipeFormFragment(
+            current,
+            error = "No ingredients could be made out on that page. " +
+                "A straighter, closer photo of just the recipe usually does it.",
+        )
+
+    return recipeFormFragment(
+        current.mergedWith(recipe),
+        notice = "Read ${recipe.ingredients.size} ingredients off that page. " +
+            "Check it over before saving - a scan is rarely perfect.",
+    )
+}
+
+/** Photographs run large, and a multi-page PDF larger still. */
+private const val MAX_SCAN_BYTES = 25L * 1024 * 1024

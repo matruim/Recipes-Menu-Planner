@@ -78,3 +78,33 @@ fun FlowContent.pasteSourceFallback(
         }
     }
 }
+
+/**
+ * Photograph a cookbook page or drop in a PDF, and the text is read off it.
+ *
+ * Offered only where the machine can actually do it, since a control that always
+ * fails is worse than no control.
+ */
+fun FlowContent.scanPageField(available: Boolean) {
+    if (!available) return
+    div("field") {
+        label {
+            +"Scan a page "
+            span("hint") { +"a photo of a cookbook page, a recipe card, or a PDF" }
+        }
+        div("import-row") {
+            input(type = InputType.file, name = "page") {
+                accept = "image/*,application/pdf"
+                hxPost = "/recipes/scan"
+                hxEncoding = "multipart/form-data"
+                hxTarget = "#recipe-form"
+                hxSwap = "outerHTML"
+                hxIndicator = "#scan-status"
+            }
+        }
+        span("htmx-indicator hint") {
+            id = "scan-status"
+            +"Reading the page..."
+        }
+    }
+}

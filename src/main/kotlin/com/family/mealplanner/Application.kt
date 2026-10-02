@@ -9,6 +9,7 @@ import com.family.mealplanner.repository.PlannedMealRepository
 import com.family.mealplanner.repository.RecipeRepository
 import com.family.mealplanner.repository.ShoppingListRepository
 import com.family.mealplanner.service.ImageStore
+import com.family.mealplanner.service.PageScanner
 import com.family.mealplanner.service.RecipeScraper
 import com.family.mealplanner.service.UrlFetcher
 import com.family.mealplanner.web.calendarRoutes
@@ -64,7 +65,10 @@ fun Application.module() {
     val recipes = RecipeRepository()
     val plans = PlannedMealRepository()
     val lists = ShoppingListRepository()
-    val images = ImageStore(java.nio.file.Path.of(environment.config.imageConfig().directory))
+    val imageDirectory = java.nio.file.Path.of(environment.config.imageConfig().directory)
+    val images = ImageStore(imageDirectory)
+    // The compiled text-recognition helper is cached beside the pictures.
+    val scanner = PageScanner(imageDirectory.resolveSibling("scan"))
     val scraper = RecipeScraper(
         UrlFetcher(allowPrivateHosts = environment.config.scraperConfig().allowPrivateHosts),
         images,
@@ -73,7 +77,7 @@ fun Application.module() {
     routing {
         staticResources("/static", "static")
         calendarRoutes(plans, recipes)
-        recipeRoutes(recipes, plans, scraper, images, environment.config.publicBaseUrl())
+        recipeRoutes(recipes, plans, scraper, images, scanner, environment.config.publicBaseUrl())
         shoppingListRoutes(lists, plans)
     }
 }

@@ -1,6 +1,7 @@
 package com.family.mealplanner.web
 
 import java.net.Inet4Address
+import java.net.InetAddress
 import java.net.NetworkInterface
 
 /**
@@ -20,8 +21,26 @@ object NetworkAddresses {
         return host.lowercase() in LOOPBACK_HOSTS
     }
 
-    /** Site-local IPv4 addresses on interfaces that are actually up. */
+    /**
+     * Addresses to offer, most durable first.
+     *
+     * The host name comes first deliberately: a DHCP lease will eventually hand
+     * this machine a different IP, and a bookmarklet built on the old one breaks
+     * silently, whereas an mDNS name keeps working.
+     */
     fun reachableOrigins(port: Int): List<String> =
+        (listOfNotNull(hostNameOrigin(port)) + siteLocalOrigins(port)).distinct()
+
+    /** Only a dotted name, since a bare one will not resolve from another device. */
+    private fun hostNameOrigin(port: Int): String? =
+        runCatching {
+            InetAddress.getLocalHost().hostName
+                ?.takeIf { it.contains('.') && !it.first().isDigit() }
+                ?.let { "http://$it:$port" }
+        }.getOrNull()
+
+    /** Site-local IPv4 addresses on interfaces that are actually up. */
+    private fun siteLocalOrigins(port: Int): List<String> =
         runCatching {
             NetworkInterface.getNetworkInterfaces()
                 .asSequence()
