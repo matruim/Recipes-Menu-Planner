@@ -135,20 +135,24 @@ private fun FlowContent.shoppingListBody(list: ShoppingList) {
 
 private fun FlowContent.shoppingItemRow(weekStart: LocalDate, item: ShoppingItem) {
     div(classes = if (item.checked) "shop-item checked" else "shop-item") {
-        input(type = InputType.checkBox) {
-            this.checked = item.checked
-            title = if (item.checked) "Mark as still needed" else "Mark as bought"
-            hxPost = "/shopping-list/$weekStart/items/${item.id}/toggle"
-            hxTarget = "#shopping-list"
-            hxSwap = "outerHTML"
-        }
-        val amount = item.displayQuantity()
-        span("amount") { +if (amount.isBlank() || amount == "as needed") "—" else amount }
-        span("label") {
-            +item.label
-            if (item.manual) {
-                +" "
-                span("manual-tag") { +"(added)" }
+        // The whole row toggles, not just the box. This is the one screen used
+        // one-handed in a shop, where an 18px target is no use at all.
+        label("shop-item-main") {
+            input(type = InputType.checkBox) {
+                this.checked = item.checked
+                title = if (item.checked) "Mark as still needed" else "Mark as bought"
+                hxPost = "/shopping-list/$weekStart/items/${item.id}/toggle"
+                hxTarget = "#shopping-list"
+                hxSwap = "outerHTML"
+            }
+            val amount = item.displayQuantity()
+            span("amount") { +if (amount.isBlank() || amount == "as needed") "\u2014" else amount }
+            span("label") {
+                +item.label
+                if (item.manual) {
+                    +" "
+                    span("manual-tag") { +"(added)" }
+                }
             }
         }
         button(classes = "btn btn-danger btn-sm") {
@@ -156,7 +160,7 @@ private fun FlowContent.shoppingItemRow(weekStart: LocalDate, item: ShoppingItem
             hxTarget = "#shopping-list"
             hxSwap = "outerHTML"
             title = "Remove ${item.label}"
-            +"✕"
+            +"\u2715"
         }
     }
 }
