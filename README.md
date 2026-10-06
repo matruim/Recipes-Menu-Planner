@@ -165,6 +165,18 @@ cartridge.
 
 ---
 
+### On a phone
+
+The planner is meant to be used from a phone — the shopping list especially,
+one-handed in a shop — so touch sizing is handled separately from layout.
+
+Layout follows the width: the month calendar becomes one day per row, cards go
+single column, and the recipe page stacks. Touch sizing follows the *pointer*,
+not the width, so a desktop window dragged narrow keeps its compact controls
+while a tablet in landscape gets large ones. On a touch screen every control is
+at least 44px, form fields are 16px so Safari does not zoom the page when one is
+focused, and a whole shopping-list row toggles rather than just its checkbox.
+
 ## Configuration
 
 Nothing needs setting to run locally. To change anything, copy `.env.example` to
